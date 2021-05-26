@@ -34,36 +34,57 @@ import IVisual = powerbi.extensibility.visual.IVisual;
 import EnumerateVisualObjectInstancesOptions = powerbi.EnumerateVisualObjectInstancesOptions;
 import VisualObjectInstance = powerbi.VisualObjectInstance;
 import DataView = powerbi.DataView;
+import DataViewTable = powerbi.DataViewTable;
 import VisualObjectInstanceEnumerationObject = powerbi.VisualObjectInstanceEnumerationObject;
+import * as d3 from "d3";
+import IVisualHost = powerbi.extensibility.visual.IVisualHost;
+type Selection<T extends d3.BaseType> = d3.Selection<T, any, any, any>;
+import DataViewMetadataColumn = powerbi.DataViewMetadataColumn;
 
 import { VisualSettings } from "./settings";
 export class Visual implements IVisual {
-    private target: HTMLElement;
-    private updateCount: number;
+    private svg: Selection<SVGElement>;
+    private table: HTMLTableElement;
     private settings: VisualSettings;
-    private textNode: Text;
+    private host: IVisualHost;
 
     constructor(options: VisualConstructorOptions) {
-        console.log('Visual constructor', options);
-        this.target = options.element;
-        this.updateCount = 0;
-        if (document) {
-            const new_p: HTMLElement = document.createElement("p");
-            new_p.appendChild(document.createTextNode("Update count:"));
-            const new_em: HTMLElement = document.createElement("em");
-            this.textNode = document.createTextNode(this.updateCount.toString());
-            new_em.appendChild(this.textNode);
-            new_p.appendChild(new_em);
-            this.target.appendChild(new_p);
-        }
+        // this.svg = d3.select(options.element).append('svg');
+        this.table = document.createElement('table');
+        options.element.appendChild(this.table);
+        this.host = options.host;
     }
 
     public update(options: VisualUpdateOptions) {
-        this.settings = Visual.parseSettings(options && options.dataViews && options.dataViews[0]);
-        console.log('Visual update', options);
-        if (this.textNode) {
-            this.textNode.textContent = (this.updateCount++).toString();
+        const dataView: DataView = options.dataViews[0];
+        const tableDataview: DataViewTable = dataView.table;
+
+        if (!tableDataview){
+            return;
         }
+
+        while (this.table.firstChild) {
+            this.table.removeChild(this.table.firstChild);
+        }
+
+        // draw header
+        const tableHeader = document.createElement("th");
+        tableDataview.columns.forEach((column: DataViewMetadataColumn) => {
+            const tableHeaderColumn = document.createElement("td");
+            tableHeaderColumn.innerText = column.displayName;
+            tableHeader.appendChild(tableHeaderColumn);
+        });
+
+        // draw rows
+        tableDataview.rows.forEach((row: powerbi.DataViewTableRow) => {
+            const tableRow = document.createElement("tr");
+            row.forEach((columnValue: powerbi.PrimitiveValue) => {
+                const cell = document.createElement("td");
+                cell.innerText = columnValue.toString();
+                tableRow.appendChild(cell);
+            })
+            this.table.appendChild(tableRow);
+        })
     }
 
     private static parseSettings(dataView: DataView): VisualSettings {
