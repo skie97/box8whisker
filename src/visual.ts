@@ -107,7 +107,37 @@ function visualTransform(options: VisualUpdateOptions, host: IVisualHost): Box8W
             data[row[catIndex] as string] = [row[numIndex]]
         }
     });
-    console.log(data);
+
+    for (let key in data) {
+        
+        let datapoint: Box8WDataPoint = {
+            minValue: 0,
+            maxValue: 0,
+            medianValue: 0,
+            q1Value: 0,
+            q3Value: 0,
+            category: "",
+            color: "",
+            strokeColor: "",
+            strokeWidth: 2,
+            selectionId: null,
+            datapoints: []
+        };
+        datapoint.category = key;
+        datapoint.datapoints = data[key];
+        datapoint.maxValue = d3.max(data[key]);
+        datapoint.minValue = d3.min(data[key]);
+        datapoint.medianValue = d3.median(data[key]);
+        datapoint.q1Value = d3.quantile(data[key], 0.25);
+        datapoint.q3Value = d3.quantile(data[key], 0.75);
+        datapoint.color = "grey";
+        datapoint.strokeColor = "black";
+        viewModel.dataPoints.push(datapoint);
+        viewModel.dataMax = Math.max(viewModel.dataMax, Number(d3.max(data[key])));
+    }
+    console.log(viewModel);
+
+    return viewModel;
 }
 
 export class Visual implements IVisual {
