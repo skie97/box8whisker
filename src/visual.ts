@@ -47,7 +47,7 @@ import { VisualSettings } from "./settings";
 import { Primitive } from "d3";
 
 
-interface Box8WViewMode {
+interface Box8WViewModel {
     dataPoints: Box8WDataPoint[];
     dataMax: number;
     settings: Box8WSettings;
@@ -64,12 +64,51 @@ interface Box8WDataPoint {
     strokeColor: string;
     strokeWidth: number;
     selectionId: ISelectionId;
+    datapoints: number[];
 }
 
 interface Box8WSettings {
 
 }
 
+function visualTransform(options: VisualUpdateOptions, host: IVisualHost): Box8WViewModel {
+    let dataViews = options.dataViews;
+    let viewModel: Box8WViewModel = {
+        dataPoints: [],
+        dataMax: 0,
+        settings: <Box8WSettings>{}
+    }
+
+    if (!dataViews
+        || !dataViews[0]
+        || !dataViews[0].table
+        || !dataViews[0].table.columns
+        || !dataViews[0].table.rows) {
+            return viewModel;
+        }
+    
+    let data = {};
+
+    const tableDataview: DataViewTable = dataViews[0].table;
+    let catIndex = 0;
+    let numIndex = 0;
+    for (let i = 0; i < tableDataview.columns.length; i++) {
+        if (tableDataview.columns[i].type.text == true) {
+            catIndex = i;
+        } else if (tableDataview.columns[i].type.numeric == true) {
+            numIndex = i;
+        }
+    }
+
+    tableDataview.rows.forEach((row: powerbi.DataViewTableRow) => {
+        if (row[catIndex] as string in data) {
+            data[row[catIndex] as string].push(row[numIndex])
+        } else {
+            data[row[catIndex] as string] = [row[numIndex]]
+        }
+    });
+    console.log(data);
+}
 
 export class Visual implements IVisual {
     private svg: Selection<SVGElement>;
@@ -87,6 +126,7 @@ export class Visual implements IVisual {
     public update(options: VisualUpdateOptions) {
         const dataView: DataView = options.dataViews[0];
         const tableDataview: DataViewTable = dataView.table;
+        visualTransform(options, this.host);
 
         if (!tableDataview){
             return;
@@ -116,6 +156,8 @@ export class Visual implements IVisual {
             this.table.appendChild(tableRow);
         })
     }
+
+    
 
     private static parseSettings(dataView: DataView): VisualSettings {
         return <VisualSettings>VisualSettings.parse(dataView);

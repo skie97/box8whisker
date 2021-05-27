@@ -8,7 +8,7 @@
         {
             "displayName": "Measure Data",
             "name": "measure",
-            "kind": "GroupingOrMeasure" 
+            "kind": "GroupingOrMeasure"
         }
     ],
     "objects": {
@@ -47,7 +47,7 @@
                         "fill": {}
                     }
                 },
-                 "fontSize": {
+                "fontSize": {
                     "displayName": "Text Size",
                     "type": {
                         "formatting": {
@@ -60,6 +60,18 @@
     },
     "dataViewMappings": [
         {
+            "conditions": [
+                {
+                    "category": {
+                        "max": 1
+                    }
+                },
+                {
+                    "measure": {
+                        "max": 1
+                    }
+                }
+            ],
             "table": {
                 "rows": {
                     "select": [
