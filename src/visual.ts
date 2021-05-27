@@ -40,8 +40,29 @@ import * as d3 from "d3";
 import IVisualHost = powerbi.extensibility.visual.IVisualHost;
 type Selection<T extends d3.BaseType> = d3.Selection<T, any, any, any>;
 import DataViewMetadataColumn = powerbi.DataViewMetadataColumn;
+import PrimitiveValue = powerbi.PrimitiveValue;
 
 import { VisualSettings } from "./settings";
+import { Primitive } from "d3";
+
+
+interface Box8WViewMode {
+    dataPoints: Box8WDataPoint[];
+    dataMax: number;
+    settings: Box8WSettings;
+}
+
+interface Box8WDataPoint {
+    minValue: PrimitiveValue;
+    maxValue: PrimitiveValue;
+    
+}
+
+interface Box8WSettings {
+
+}
+
+
 export class Visual implements IVisual {
     private svg: Selection<SVGElement>;
     private table: HTMLTableElement;
@@ -73,6 +94,7 @@ export class Visual implements IVisual {
             const tableHeaderColumn = document.createElement("td");
             tableHeaderColumn.innerText = column.displayName;
             tableHeader.appendChild(tableHeaderColumn);
+            this.table.appendChild(tableHeader);
         });
 
         // draw rows
