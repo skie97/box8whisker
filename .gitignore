@@ -1,4 +1,5 @@
 node_modules
 dist
 .tmp
+webpack.statistics.prod.html
 webpack.*.html
