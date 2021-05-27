@@ -84,9 +84,9 @@ function visualTransform(options: VisualUpdateOptions, host: IVisualHost): Box8W
         || !dataViews[0].table
         || !dataViews[0].table.columns
         || !dataViews[0].table.rows) {
-            return viewModel;
-        }
-    
+        return viewModel;
+    }
+
     let data = {};
 
     const tableDataview: DataViewTable = dataViews[0].table;
@@ -109,7 +109,7 @@ function visualTransform(options: VisualUpdateOptions, host: IVisualHost): Box8W
     });
 
     for (let key in data) {
-        
+
         let datapoint: Box8WDataPoint = {
             minValue: 0,
             maxValue: 0,
@@ -135,59 +135,130 @@ function visualTransform(options: VisualUpdateOptions, host: IVisualHost): Box8W
         viewModel.dataPoints.push(datapoint);
         viewModel.dataMax = Math.max(viewModel.dataMax, Number(d3.max(data[key])));
     }
-    console.log(viewModel);
-
     return viewModel;
 }
 
 export class Visual implements IVisual {
     private svg: Selection<SVGElement>;
-    private table: HTMLTableElement;
+    private box8Wcontainer: Selection<SVGElement>;
     private settings: VisualSettings;
     private host: IVisualHost;
+    private yAxis: Selection<SVGElement>;
+    private xAxis: Selection<SVGElement>;
+    private xAxis_Gridlines: Selection<SVGElement>;
 
     constructor(options: VisualConstructorOptions) {
-        // this.svg = d3.select(options.element).append('svg');
-        this.table = document.createElement('table');
-        options.element.appendChild(this.table);
+        this.svg = d3.select(options.element).append('svg');
         this.host = options.host;
+        this.box8Wcontainer = this.svg.append("g")
+
+        this.yAxis = this.svg
+            .append('g')
+            .classed('yAxis', true);
+        this.xAxis = this.svg
+            .append('g')
+            .classed('xAxis', true);
+        this.xAxis_Gridlines = this.svg
+            .append('g')
+            .classed('grid', true);
     }
 
     public update(options: VisualUpdateOptions) {
-        const dataView: DataView = options.dataViews[0];
-        const tableDataview: DataViewTable = dataView.table;
-        visualTransform(options, this.host);
+        const viewModel: Box8WViewModel = visualTransform(options, this.host);
 
-        if (!tableDataview){
+        if (viewModel.dataPoints.length == 0) {
             return;
         }
 
-        while (this.table.firstChild) {
-            this.table.removeChild(this.table.firstChild);
-        }
+        let width = options.viewport.width;
+        let height = options.viewport.height;
+        let yAxis_width = 300;
 
-        // draw header
-        const tableHeader = document.createElement("th");
-        tableDataview.columns.forEach((column: DataViewMetadataColumn) => {
-            const tableHeaderColumn = document.createElement("td");
-            tableHeaderColumn.innerText = column.displayName;
-            tableHeader.appendChild(tableHeaderColumn);
-            this.table.appendChild(tableHeader);
-        });
+        this.svg.attr('width', width)
+            .attr('height', height);
 
-        // draw rows
-        tableDataview.rows.forEach((row: powerbi.DataViewTableRow) => {
-            const tableRow = document.createElement("tr");
-            row.forEach((columnValue: powerbi.PrimitiveValue) => {
-                const cell = document.createElement("td");
-                cell.innerText = columnValue.toString();
-                tableRow.appendChild(cell);
-            })
-            this.table.appendChild(tableRow);
-        })
+        let y = d3.scaleBand()
+            .domain(viewModel.dataPoints.map(d => d.category))
+            .rangeRound([0, height - 22])
+            .padding(0.2);
+
+        let x = d3.scaleLinear()
+            .domain([0, viewModel.dataMax])
+            .range([yAxis_width, width]);
+
+        // Draw the axis
+        let yAxis = d3.axisLeft(y);
+        let xAxis = d3.axisBottom(x);
+
+        this.yAxis.attr('transform', 'translate(' + yAxis_width + ',0)')
+            .call(yAxis);
+        this.xAxis.attr('transform', 'translate(0,' + (height - 20) + ')')
+            .call(xAxis);
+        this.xAxis_Gridlines.attr('transform', 'translate(0,' + (height - 20) + ')')
+            .call(xAxis.tickSize(-height).tickFormat((d,i) => ""));
+        
+
+        let boxes = this.box8Wcontainer
+            .selectAll('.box8w')
+            .data(viewModel.dataPoints);
+
+        let boxesMerged = boxes.enter()
+            .append('g').classed('box8w', true)
+
+        boxesMerged.append("rect").classed("box", true);
+        boxesMerged.append("line").classed("minLine", true);
+        boxesMerged.append("line").classed("min2boxLine", true);
+        boxesMerged.append("line").classed("maxLine", true);
+        boxesMerged.append("line").classed("max2boxLine", true);
+
+        boxesMerged = boxesMerged.merge(<any>boxes);
+
+        boxesMerged.select('.box')
+            .attr("width", d => x(<number>d.q3Value) - x(<number>d.q1Value))
+            .attr("x", d => x(<number>d.q1Value))
+            .attr("height", y.bandwidth())
+            .attr("y", d => y(d.category))
+            .style("fill-opacity", 0.8)
+            .style("fill", d => d.color)
+            .style("stroke", d => d.strokeColor)
+            .style("stroke-width", d => d.strokeWidth);
+
+        boxesMerged.select('.minLine')
+            .attr("x1", d => x(<number>d.minValue))
+            .attr("x2", d => x(<number>d.minValue))
+            .attr("y1", d => y(d.category))
+            .attr("y2", d => y(d.category) + y.bandwidth())
+            .style("stroke", d => d.strokeColor)
+            .style("stroke-width", d => d.strokeWidth);
+
+        boxesMerged.select('.min2boxLine')
+            .attr("x1", d => x(<number>d.minValue))
+            .attr("x2", d => x(<number>d.q1Value))
+            .attr("y1", d => y(d.category) + (y.bandwidth() / 2))
+            .attr("y2", d => y(d.category) + (y.bandwidth() / 2))
+            .style("stroke", d => d.strokeColor)
+            .style("stroke-width", d => d.strokeWidth);
+
+        boxesMerged.select('.maxLine')
+            .attr("x1", d => x(<number>d.maxValue))
+            .attr("x2", d => x(<number>d.maxValue))
+            .attr("y1", d => y(d.category))
+            .attr("y2", d => y(d.category) + y.bandwidth())
+            .style("stroke", d => d.strokeColor)
+            .style("stroke-width", d => d.strokeWidth);
+
+        boxesMerged.select('.max2boxLine')
+            .attr("x1", d => x(<number>d.maxValue))
+            .attr("x2", d => x(<number>d.q3Value))
+            .attr("y1", d => y(d.category) + (y.bandwidth() / 2))
+            .attr("y2", d => y(d.category) + (y.bandwidth() / 2))
+            .style("stroke", d => d.strokeColor)
+            .style("stroke-width", d => d.strokeWidth);
+
+        boxes.exit().remove();
     }
 
-    
+
 
     private static parseSettings(dataView: DataView): VisualSettings {
         return <VisualSettings>VisualSettings.parse(dataView);
