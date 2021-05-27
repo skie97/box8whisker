@@ -41,6 +41,7 @@ import IVisualHost = powerbi.extensibility.visual.IVisualHost;
 type Selection<T extends d3.BaseType> = d3.Selection<T, any, any, any>;
 import DataViewMetadataColumn = powerbi.DataViewMetadataColumn;
 import PrimitiveValue = powerbi.PrimitiveValue;
+import ISelectionId = powerbi.visuals.ISelectionId;
 
 import { VisualSettings } from "./settings";
 import { Primitive } from "d3";
@@ -55,7 +56,14 @@ interface Box8WViewMode {
 interface Box8WDataPoint {
     minValue: PrimitiveValue;
     maxValue: PrimitiveValue;
-    
+    medianValue: PrimitiveValue;
+    q1Value: PrimitiveValue;
+    q3Value: PrimitiveValue;
+    category: string;
+    color: string;
+    strokeColor: string;
+    strokeWidth: number;
+    selectionId: ISelectionId;
 }
 
 interface Box8WSettings {
