@@ -31,7 +31,18 @@ import DataViewObjectsParser = dataViewObjectsParser.DataViewObjectsParser;
 
 export class VisualSettings extends DataViewObjectsParser {
       public dataPoint: dataPointSettings = new dataPointSettings();
+      public yAxis: yAxisSettings = new yAxisSettings();
+      public xAxis: xAxisSettings = new xAxisSettings();
       }
+    
+    export class yAxisSettings {
+      public fontSize: number = 20;
+      public width: number = 300;
+    }
+
+    export class xAxisSettings {
+      public fontSize: number = 14;
+    }
 
     export class dataPointSettings {
      // Default color

@@ -164,6 +164,7 @@ export class Visual implements IVisual {
     }
 
     public update(options: VisualUpdateOptions) {
+        this.settings = Visual.parseSettings(options && options.dataViews && options.dataViews[0]);
         const viewModel: Box8WViewModel = visualTransform(options, this.host);
 
         if (viewModel.dataPoints.length == 0) {
@@ -176,25 +177,30 @@ export class Visual implements IVisual {
 
         this.svg.attr('width', width)
             .attr('height', height);
-
+        
         let y = d3.scaleBand()
             .domain(viewModel.dataPoints.map(d => d.category))
-            .rangeRound([0, height - 22])
+            .rangeRound([0, height - this.settings.xAxis.fontSize - 8])
             .padding(0.2);
 
         let x = d3.scaleLinear()
             .domain([0, viewModel.dataMax])
-            .range([yAxis_width, width]);
+            .range([this.settings.yAxis.width, width-10]);
 
         // Draw the axis
         let yAxis = d3.axisLeft(y);
         let xAxis = d3.axisBottom(x);
 
-        this.yAxis.attr('transform', 'translate(' + yAxis_width + ',0)')
+        this.yAxis.attr('transform', 'translate(' 
+            + this.settings.yAxis.width + ',0)')
+            .style("font-size", this.settings.yAxis.fontSize)
             .call(yAxis);
-        this.xAxis.attr('transform', 'translate(0,' + (height - 20) + ')')
+        this.xAxis.attr('transform', 'translate(0,' 
+            + (height - this.settings.xAxis.fontSize - 6) + ')')
+            .style("font-size", this.settings.xAxis.fontSize)
             .call(xAxis);
-        this.xAxis_Gridlines.attr('transform', 'translate(0,' + (height - 20) + ')')
+        this.xAxis_Gridlines.attr('transform', 'translate(0,' 
+            + (height - this.settings.xAxis.fontSize - 6) + ')')
             .call(xAxis.tickSize(-height).tickFormat((d,i) => ""));
         
 

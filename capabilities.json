@@ -12,6 +12,38 @@
         }
     ],
     "objects": {
+        "yAxis": {
+            "displayName": "y-Axis",
+            "properties": {
+                "fontSize": {
+                    "displayName": "Text Size",
+                    "type": {
+                        "formatting": {
+                            "fontSize": true
+                        }
+                    }
+                },
+                "width":{
+                    "displayName": "Label Width",
+                    "type": {
+                        "numeric": true
+                    }
+                }
+            }
+        },
+        "xAxis": {
+            "displayName": "x-Axis",
+            "properties": {
+                "fontSize": {
+                    "displayName": "Text Size",
+                    "type": {
+                        "formatting": {
+                            "fontSize": true
+                        }
+                    }
+                }
+            }
+        },
         "dataPoint": {
             "displayName": "Data colors",
             "properties": {
@@ -23,12 +55,6 @@
                                 "color": true
                             }
                         }
-                    }
-                },
-                "showAllDataPoints": {
-                    "displayName": "Show all",
-                    "type": {
-                        "bool": true
                     }
                 },
                 "fill": {
