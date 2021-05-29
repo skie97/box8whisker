@@ -57,6 +57,8 @@ interface Box8WDataPoint {
     minValue: PrimitiveValue;
     maxValue: PrimitiveValue;
     medianValue: PrimitiveValue;
+    r0Value: PrimitiveValue;
+    r1Value: PrimitiveValue;
     q1Value: PrimitiveValue;
     q3Value: PrimitiveValue;
     category: string;
@@ -65,6 +67,12 @@ interface Box8WDataPoint {
     strokeWidth: number;
     selectionId: ISelectionId;
     datapoints: number[];
+    outliers: Box8WDataPointOutlier[];
+}
+
+interface Box8WDataPointOutlier {
+    value: PrimitiveValue;
+    category: string;
 }
 
 interface Box8WSettings {
@@ -83,7 +91,8 @@ function visualTransform(options: VisualUpdateOptions, host: IVisualHost): Box8W
         || !dataViews[0]
         || !dataViews[0].table
         || !dataViews[0].table.columns
-        || !dataViews[0].table.rows) {
+        || !dataViews[0].table.rows
+        || dataViews[0].table.columns.length != 2) {
         return viewModel;
     }
 
@@ -116,12 +125,16 @@ function visualTransform(options: VisualUpdateOptions, host: IVisualHost): Box8W
             medianValue: 0,
             q1Value: 0,
             q3Value: 0,
+            r0Value: 0,
+            r1Value: 0,
+
             category: "",
             color: "",
             strokeColor: "",
-            strokeWidth: 2,
+            strokeWidth: 1,
             selectionId: null,
-            datapoints: []
+            datapoints: [],
+            outliers: []
         };
         datapoint.category = key;
         datapoint.datapoints = data[key];
@@ -130,8 +143,21 @@ function visualTransform(options: VisualUpdateOptions, host: IVisualHost): Box8W
         datapoint.medianValue = d3.median(data[key]);
         datapoint.q1Value = d3.quantile(data[key], 0.25);
         datapoint.q3Value = d3.quantile(data[key], 0.75);
+        datapoint.r0Value = Math.max(Number(datapoint.minValue),
+            Number(datapoint.q1Value - (datapoint.q3Value - datapoint.q1Value)*1.5));
+        datapoint.r1Value = Math.min(Number(datapoint.maxValue),
+            Number(datapoint.q3Value + (datapoint.q3Value - datapoint.q1Value)*1.5));
         datapoint.color = "grey";
         datapoint.strokeColor = "black";
+        for (let i = 0; i < datapoint.datapoints.length; i++) {
+            if (datapoint.datapoints[i] < datapoint.r0Value
+                || datapoint.datapoints[i] > datapoint.r1Value) {
+                    datapoint.outliers.push({
+                        value: datapoint.datapoints[i],
+                        category: datapoint.category
+                    })
+            }
+        }
         viewModel.dataPoints.push(datapoint);
         viewModel.dataMax = Math.max(viewModel.dataMax, Number(d3.max(data[key])));
     }
@@ -150,8 +176,11 @@ export class Visual implements IVisual {
     constructor(options: VisualConstructorOptions) {
         this.svg = d3.select(options.element).append('svg');
         this.host = options.host;
-        this.box8Wcontainer = this.svg.append("g")
 
+        // This is the main container for all d3 visuals
+        this.box8Wcontainer = this.svg.append("g");
+
+        // Adding the Axis and gridlines
         this.yAxis = this.svg
             .append('g')
             .classed('yAxis', true);
@@ -168,12 +197,13 @@ export class Visual implements IVisual {
         const viewModel: Box8WViewModel = visualTransform(options, this.host);
 
         if (viewModel.dataPoints.length == 0) {
+            this.box8Wcontainer.remove();
+            this.box8Wcontainer = this.svg.append("g");
             return;
         }
 
         let width = options.viewport.width;
         let height = options.viewport.height;
-        let yAxis_width = 300;
 
         this.svg.attr('width', width)
             .attr('height', height);
@@ -211,12 +241,16 @@ export class Visual implements IVisual {
         let boxesMerged = boxes.enter()
             .append('g').classed('box8w', true)
 
+        // Can't chain as each needs to be access individually.
+        // Should be self-explanitory 
         boxesMerged.append("rect").classed("box", true);
         boxesMerged.append("line").classed("minLine", true);
         boxesMerged.append("line").classed("min2boxLine", true);
         boxesMerged.append("line").classed("maxLine", true);
         boxesMerged.append("line").classed("max2boxLine", true);
+        boxesMerged.append("line").classed("medianLine", true);
 
+        // This merges with the boxes that were already there.
         boxesMerged = boxesMerged.merge(<any>boxes);
 
         boxesMerged.select('.box')
@@ -230,15 +264,15 @@ export class Visual implements IVisual {
             .style("stroke-width", d => d.strokeWidth);
 
         boxesMerged.select('.minLine')
-            .attr("x1", d => x(<number>d.minValue))
-            .attr("x2", d => x(<number>d.minValue))
+            .attr("x1", d => x(<number>d.r0Value))
+            .attr("x2", d => x(<number>d.r0Value))
             .attr("y1", d => y(d.category))
             .attr("y2", d => y(d.category) + y.bandwidth())
             .style("stroke", d => d.strokeColor)
             .style("stroke-width", d => d.strokeWidth);
 
         boxesMerged.select('.min2boxLine')
-            .attr("x1", d => x(<number>d.minValue))
+            .attr("x1", d => x(<number>d.r0Value))
             .attr("x2", d => x(<number>d.q1Value))
             .attr("y1", d => y(d.category) + (y.bandwidth() / 2))
             .attr("y2", d => y(d.category) + (y.bandwidth() / 2))
@@ -246,25 +280,51 @@ export class Visual implements IVisual {
             .style("stroke-width", d => d.strokeWidth);
 
         boxesMerged.select('.maxLine')
-            .attr("x1", d => x(<number>d.maxValue))
-            .attr("x2", d => x(<number>d.maxValue))
+            .attr("x1", d => x(<number>d.r1Value))
+            .attr("x2", d => x(<number>d.r1Value))
             .attr("y1", d => y(d.category))
             .attr("y2", d => y(d.category) + y.bandwidth())
             .style("stroke", d => d.strokeColor)
             .style("stroke-width", d => d.strokeWidth);
 
         boxesMerged.select('.max2boxLine')
-            .attr("x1", d => x(<number>d.maxValue))
+            .attr("x1", d => x(<number>d.r1Value))
             .attr("x2", d => x(<number>d.q3Value))
             .attr("y1", d => y(d.category) + (y.bandwidth() / 2))
             .attr("y2", d => y(d.category) + (y.bandwidth() / 2))
             .style("stroke", d => d.strokeColor)
             .style("stroke-width", d => d.strokeWidth);
 
+        boxesMerged.select('.medianLine')
+            .attr("x1", d => x(<number>d.medianValue))
+            .attr("x2", d => x(<number>d.medianValue))
+            .attr("y1", d => y(d.category))
+            .attr("y2", d => y(d.category) + y.bandwidth())
+            .style("stroke", d => d.strokeColor)
+            .style("stroke-width", d => d.strokeWidth);
+
+        const outlierDots = boxesMerged
+            .selectAll(".outlierDot")
+            .data(d => d.outliers)
+        
+        let outlierDotsMerged = outlierDots
+            .enter()
+            .append("circle")
+            .classed("outlierDot", true);
+        
+        outlierDotsMerged = outlierDotsMerged.merge(<any>outlierDots)
+
+        outlierDotsMerged
+            .attr("cx", e => x(<number>e.value))
+            .attr("cy", e => y(e.category) + (y.bandwidth() / 2))
+            .attr("r", this.settings.box8W.outlierDotSize)
+            .style("fill", this.settings.box8W.outlierColor)
+            .style("fill-opacity", 0.4);
+
+        outlierDotsMerged.exit().remove();
+        
         boxes.exit().remove();
     }
-
-
 
     private static parseSettings(dataView: DataView): VisualSettings {
         return <VisualSettings>VisualSettings.parse(dataView);

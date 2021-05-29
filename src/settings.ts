@@ -30,9 +30,10 @@ import { dataViewObjectsParser } from "powerbi-visuals-utils-dataviewutils";
 import DataViewObjectsParser = dataViewObjectsParser.DataViewObjectsParser;
 
 export class VisualSettings extends DataViewObjectsParser {
-      public dataPoint: dataPointSettings = new dataPointSettings();
+      // public dataPoint: dataPointSettings = new dataPointSettings();
       public yAxis: yAxisSettings = new yAxisSettings();
       public xAxis: xAxisSettings = new xAxisSettings();
+      public box8W: box8WSettings = new box8WSettings();
       }
     
     export class yAxisSettings {
@@ -44,6 +45,12 @@ export class VisualSettings extends DataViewObjectsParser {
       public fontSize: number = 14;
     }
 
+    export class box8WSettings {
+      public outlierDotSize: number = 4;
+      public outlierColor: string ="blue";
+    }
+
+    /*
     export class dataPointSettings {
      // Default color
       public defaultColor: string = "";
@@ -55,5 +62,5 @@ export class VisualSettings extends DataViewObjectsParser {
       public fillRule: string = "";
      // Text Size
       public fontSize: number = 12;
-     }
+     }*/
 

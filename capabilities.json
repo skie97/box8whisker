@@ -6,12 +6,33 @@
             "kind": "Grouping"
         },
         {
-            "displayName": "Measure Data",
+            "displayName": "Sample Data",
             "name": "measure",
             "kind": "GroupingOrMeasure"
         }
     ],
     "objects": {
+        "box8W": {
+            "displayName": "Box and Whisker",
+            "properties": {
+                "outlierDotSize": {
+                    "displayName": "Outlier Dot Size",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "outlierColor": {
+                    "displayName": "Outlier Dot Colour",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "yAxis": {
             "displayName": "y-Axis",
             "properties": {
@@ -23,7 +44,7 @@
                         }
                     }
                 },
-                "width":{
+                "width": {
                     "displayName": "Label Width",
                     "type": {
                         "numeric": true
